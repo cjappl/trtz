@@ -16,7 +16,7 @@ fn parse_regex_match<T: std::str::FromStr>(caps: &Captures, key: &str) -> Option
 
 fn main() {
     let date_regex = Regex::new(
-        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<micro_separator>[.:])(?P<micro>\d{6})"
+        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<micro_separator>[.:])(?P<micro>\d{2,6})"
         ).expect("Regex malformed");
 
     let stdin = io::stdin();
