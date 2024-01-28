@@ -16,7 +16,7 @@ fn parse_regex_match<T: std::str::FromStr>(caps: &Captures, key: &str) -> Option
 
 fn main() {
     let date_regex = Regex::new(
-        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<micro_separator>[.:])(?P<micro>\d{2,6})"
+        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<separator>[.:])(?P<post_sep>\d{2,6})"
         ).expect("Regex malformed");
 
     let stdin = io::stdin();
@@ -35,12 +35,12 @@ fn main() {
                                                 parse_regex_match::<u32>(&caps, "second").unwrap(), 
                                                ).unwrap();
 
-            // Dealing with micros a little differently, as we assume they aren't touched by timezone conversion
-            let micros = parse_regex_match::<u32>(&caps, "micro").unwrap();
-            let micros_separator = parse_regex_match::<String>(&caps, "micro_separator").unwrap();
+            // Dealing with post separator a little differently, as we assume they aren't touched by timezone conversion
+            let post_sep = parse_regex_match::<u32>(&caps, "post_sep").unwrap();
+            let separator = parse_regex_match::<String>(&caps, "separator").unwrap();
 
             let local_date : DateTime<Local> = DateTime::from(utc_date);
-            format!("{}{micros_separator}{micros}", local_date.format("%Y-%m-%dT%H:%M:%S"))
+            format!("{}{separator}{post_sep}", local_date.format("%Y-%m-%dT%H:%M:%S"))
         });
 
         println!("{}", fixed_line.as_ref());
