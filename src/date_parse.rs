@@ -13,7 +13,7 @@ pub fn parse_regex_match<T: std::str::FromStr>(caps: &Captures, key: &str) -> Op
 
 pub fn get_iso_date_regex() -> Regex {
     Regex::new(
-        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<everything_after>Z|(\.\d+))?"
+        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<everything_after>\.\d+)?Z"
     ).expect("Regex malformed")
 }
 
@@ -60,15 +60,15 @@ mod tests {
         let date_regex = get_iso_date_regex();
         let line = "2024-01-27T04:15:46.280000Z";
         let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
-        assert_eq!(fixed_line, "2024-01-26T20:15:46.280000Z");
+        assert_eq!(fixed_line, "2024-01-26T20:15:46.280000");
     }
 
     #[test]
     fn test_fix_timestamp_millis() {
         let date_regex = get_iso_date_regex();
-        let line = "2024-01-29T23:21:38Z";
+        let line = "2024-01-29T23:21:38.12Z";
         let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
-        assert_eq!(fixed_line, "2024-01-29T15:21:38Z");
+        assert_eq!(fixed_line, "2024-01-29T15:21:38.12");
     }
 
     #[test]
@@ -76,6 +76,14 @@ mod tests {
         let date_regex = get_iso_date_regex();
         let line = "hello 2024-01-29T23:21:38Z world";
         let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
-        assert_eq!(fixed_line, "hello 2024-01-29T15:21:38Z world");
+        assert_eq!(fixed_line, "hello 2024-01-29T15:21:38 world");
+    }
+
+    #[test]
+    fn test_no_fractionals() {
+        let date_regex = get_iso_date_regex();
+        let line = "2024-01-29T23:21:23Z";
+        let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
+        assert_eq!(fixed_line, "2024-01-29T15:21:23");
     }
 }
