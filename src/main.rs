@@ -1,3 +1,4 @@
+use chrono::Local;
 use std::io::{self, BufRead};
 
 mod date_parse;
@@ -11,6 +12,6 @@ fn main() {
         .lock()
         .lines()
         .map(|line| line.expect("Error reading line"))
-        .map(|line| fix_timestamp_in_line(&line, &date_regex))
+        .map(|line| fix_timestamp_in_line(&line, &date_regex, &Local))
         .for_each(|line| println!("{}", line));
 }
