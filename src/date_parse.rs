@@ -13,8 +13,8 @@ pub fn parse_regex_match<T: std::str::FromStr>(caps: &Captures, key: &str) -> Op
 
 pub fn get_iso_date_regex() -> Regex {
     Regex::new(
-        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<separator>[.:])(?P<post_sep>\d{2,6})"
-        ).expect("Regex malformed")
+        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(?P<everything_after>Z|(\.\d+))?"
+    ).expect("Regex malformed")
 }
 
 pub fn fix_timestamp_in_line(line: &str, date_regex: &Regex) -> String {
@@ -34,14 +34,13 @@ pub fn fix_timestamp_in_line(line: &str, date_regex: &Regex) -> String {
             .unwrap();
 
         // Dealing with post separator a little differently, as we assume they aren't touched by timezone conversion
-        let post_sep = parse_regex_match::<u32>(caps, "post_sep").unwrap();
-        let separator = parse_regex_match::<String>(caps, "separator").unwrap();
-
         let local_date: DateTime<Local> = DateTime::from(utc_date);
-        format!(
-            "{}{separator}{post_sep}",
-            local_date.format("%Y-%m-%dT%H:%M:%S")
-        )
+        let formatted_date = local_date.format("%Y-%m-%dT%H:%M:%S").to_string();
+        if let Some(all_fractionals) = parse_regex_match::<String>(caps, "everything_after") {
+            format!("{}{}", formatted_date, all_fractionals)
+        } else {
+            formatted_date
+        }
     });
 
     fixed_line.to_string()
@@ -52,11 +51,21 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
+    // TODO don't hardcode the timezones
+
     #[test]
     fn test_fix_timestamp() {
         let date_regex = get_iso_date_regex();
         let line = "2024-01-27T04:15:46.280000Z";
         let fixed_line = fix_timestamp_in_line(line, &date_regex);
         assert_eq!(fixed_line, "2024-01-26T20:15:46.280000Z");
+    }
+
+    #[test]
+    fn test_fix_timestamp_millis() {
+        let date_regex = get_iso_date_regex();
+        let line = "2024-01-29T23:21:38Z";
+        let fixed_line = fix_timestamp_in_line(line, &date_regex);
+        assert_eq!(fixed_line, "2024-01-29T15:21:38Z");
     }
 }
