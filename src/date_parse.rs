@@ -70,4 +70,12 @@ mod tests {
         let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
         assert_eq!(fixed_line, "2024-01-29T15:21:38Z");
     }
+
+    #[test]
+    fn test_rest_of_line_is_unaffected() {
+        let date_regex = get_iso_date_regex();
+        let line = "hello 2024-01-29T23:21:38Z world";
+        let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
+        assert_eq!(fixed_line, "hello 2024-01-29T15:21:38Z world");
+    }
 }
