@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use regex::{Captures, Regex};
 
 pub fn parse_regex_match<T: std::str::FromStr>(caps: &Captures, key: &str) -> Option<T> {
@@ -17,7 +17,10 @@ pub fn get_iso_date_regex() -> Regex {
     ).expect("Regex malformed")
 }
 
-pub fn fix_timestamp_in_line(line: &str, date_regex: &Regex) -> String {
+pub fn fix_timestamp_in_line<Tz: TimeZone>(line: &str, date_regex: &Regex, timezone: &Tz) -> String
+where
+    Tz::Offset: std::fmt::Display,
+{
     let fixed_line = date_regex.replace(line, |caps: &Captures| {
         // These "unwraps" are ok because we wouldn't have entered this closure without a match
         // If we have a match, we have the groups
@@ -34,7 +37,7 @@ pub fn fix_timestamp_in_line(line: &str, date_regex: &Regex) -> String {
             .unwrap();
 
         // Dealing with post separator a little differently, as we assume they aren't touched by timezone conversion
-        let local_date: DateTime<Local> = DateTime::from(utc_date);
+        let local_date = timezone.from_utc_datetime(&utc_date.naive_utc());
         let formatted_date = local_date.format("%Y-%m-%dT%H:%M:%S").to_string();
         if let Some(all_fractionals) = parse_regex_match::<String>(caps, "everything_after") {
             format!("{}{}", formatted_date, all_fractionals)
@@ -50,14 +53,13 @@ pub fn fix_timestamp_in_line(line: &str, date_regex: &Regex) -> String {
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
-
-    // TODO don't hardcode the timezones
+    use chrono_tz::US::Pacific;
 
     #[test]
     fn test_fix_timestamp() {
         let date_regex = get_iso_date_regex();
         let line = "2024-01-27T04:15:46.280000Z";
-        let fixed_line = fix_timestamp_in_line(line, &date_regex);
+        let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
         assert_eq!(fixed_line, "2024-01-26T20:15:46.280000Z");
     }
 
@@ -65,7 +67,15 @@ mod tests {
     fn test_fix_timestamp_millis() {
         let date_regex = get_iso_date_regex();
         let line = "2024-01-29T23:21:38Z";
-        let fixed_line = fix_timestamp_in_line(line, &date_regex);
+        let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
         assert_eq!(fixed_line, "2024-01-29T15:21:38Z");
+    }
+
+    #[test]
+    fn test_rest_of_line_is_unaffected() {
+        let date_regex = get_iso_date_regex();
+        let line = "hello 2024-01-29T23:21:38Z world";
+        let fixed_line = fix_timestamp_in_line(line, &date_regex, &Pacific);
+        assert_eq!(fixed_line, "hello 2024-01-29T15:21:38Z world");
     }
 }
