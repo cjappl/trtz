@@ -46,3 +46,17 @@ pub fn fix_timestamp_in_line(line: &str, date_regex: &Regex) -> String {
 
     fixed_line.to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_fix_timestamp() {
+        let date_regex = get_iso_date_regex();
+        let line = "2024-01-27T04:15:46.280000Z";
+        let fixed_line = fix_timestamp_in_line(line, &date_regex);
+        assert_eq!(fixed_line, "2024-01-26T20:15:46.280000Z");
+    }
+}
